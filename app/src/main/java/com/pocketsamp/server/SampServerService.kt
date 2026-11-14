@@ -15,6 +15,8 @@ import android.os.Looper
 import android.os.Message
 import android.os.Messenger
 import android.os.Process as AndroidOsProcess
+import android.system.Os
+import android.system.OsConstants
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
@@ -24,6 +26,7 @@ import com.pocketsamp.config.ServerCfgRepository
 import com.pocketsamp.core.AppConstants
 import com.pocketsamp.core.ProcessUtils
 import com.pocketsamp.runtime.RuntimeInstaller
+import com.pocketsamp.runtime.RuntimePaths
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -34,6 +37,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withTimeoutOrNull
 import java.io.BufferedReader
 import java.io.File
 import java.io.InputStreamReader
@@ -244,6 +248,7 @@ class SampServerService : Service() {
         val logFile = File(serverDir, AppConstants.SAMP_SERVER_LOG_FILE)
         val initialLogOffset = if (logFile.isFile) logFile.length() else 0L
 
+        val memoryProfiles = buildQemuMemoryProfiles()
         launchQemuLocked(
             profileName = profileName,
             serverDir = serverDir,
@@ -256,8 +261,42 @@ class SampServerService : Service() {
             logFile = logFile,
             initialLogOffset = initialLogOffset,
             lowPriority = lowPriority,
-            reservedVa = AppConstants.QEMU_RESERVED_VA
+            memoryProfiles = memoryProfiles,
+            profileIndex = 0
         )
+    }
+
+    private data class QemuMemoryProfile(
+        val reservedVa: String,
+        val guestBase: String? = null
+    ) {
+        fun describeArgs(): String = if (guestBase != null) {
+            "-R $reservedVa -B $guestBase"
+        } else {
+            "-R $reservedVa"
+        }
+    }
+
+    private fun buildQemuMemoryProfiles(): List<QemuMemoryProfile> {
+        return if (Build.SUPPORTED_64_BIT_ABIS.isNotEmpty()) {
+            listOf(
+                QemuMemoryProfile(AppConstants.QEMU_RESERVED_VA, null),
+                QemuMemoryProfile(AppConstants.QEMU_RESERVED_VA, AppConstants.QEMU_GUEST_BASE_4G),
+                QemuMemoryProfile(AppConstants.QEMU_RESERVED_VA, AppConstants.QEMU_GUEST_BASE_64G),
+                QemuMemoryProfile(AppConstants.QEMU_RESERVE_512M, AppConstants.QEMU_GUEST_BASE_4G),
+                QemuMemoryProfile(AppConstants.QEMU_RESERVE_512M, AppConstants.QEMU_GUEST_BASE_8G),
+                QemuMemoryProfile(AppConstants.QEMU_RESERVE_256M, AppConstants.QEMU_GUEST_BASE_4G),
+                QemuMemoryProfile(AppConstants.QEMU_RESERVE_256M, AppConstants.QEMU_GUEST_BASE_512M),
+                QemuMemoryProfile(AppConstants.QEMU_FALLBACK_RESERVED_VA, null)
+            )
+        } else {
+            listOf(
+                QemuMemoryProfile(AppConstants.QEMU_RESERVED_VA, null),
+                QemuMemoryProfile(AppConstants.QEMU_RESERVE_512M, null),
+                QemuMemoryProfile(AppConstants.QEMU_RESERVE_256M, null),
+                QemuMemoryProfile(AppConstants.QEMU_FALLBACK_RESERVED_VA, null)
+            )
+        }
     }
 
     private fun launchQemuLocked(
@@ -267,17 +306,23 @@ class SampServerService : Service() {
         executableName: String,
         exeElf: ProcessUtils.ElfInspection,
         preparedExe: ProcessUtils.PreparedExecutable,
-        paths: com.pocketsamp.runtime.RuntimePaths,
+        paths: RuntimePaths,
         port: Int,
         logFile: File,
         initialLogOffset: Long,
         lowPriority: Boolean,
-        reservedVa: String
+        memoryProfiles: List<QemuMemoryProfile>,
+        profileIndex: Int
     ) {
+        val memoryProfile = memoryProfiles[profileIndex]
         val command = buildList {
             add(paths.qemuBinary.absolutePath)
             add("-R")
-            add(reservedVa)
+            add(memoryProfile.reservedVa)
+            if (memoryProfile.guestBase != null) {
+                add("-B")
+                add(memoryProfile.guestBase)
+            }
             add("-L")
             add(paths.sysrootDir.absolutePath)
             if (preparedExe.wasStaged) {
@@ -301,7 +346,7 @@ class SampServerService : Service() {
             add(preparedExe.execFile.absolutePath)
         }
 
-        appendLog("[PocketSamp] Memulai $executableName (${exeElf.summary}, -R $reservedVa) di port $port...")
+        appendLog("[PocketSamp] Memulai $executableName (${exeElf.summary}, ${memoryProfile.describeArgs()}) di port $port...")
 
         val process = try {
             val pb = ProcessBuilder(command)
@@ -359,7 +404,10 @@ class SampServerService : Service() {
                 BufferedReader(InputStreamReader(process.inputStream, StandardCharsets.UTF_8)).use { reader ->
                     while (isActive) {
                         val line = reader.readLine() ?: break
-                        if (line.contains("Unable to find a guest_base", ignoreCase = true)) {
+                        if (line.contains("Unable to find a guest_base", ignoreCase = true) ||
+                            line.contains("requires virtual address space that is in use", ignoreCase = true) ||
+                            line.contains("does not satisfy host minimum alignment", ignoreCase = true)
+                        ) {
                             sawGuestBaseError.set(true)
                         }
                         if (line.isNotBlank()) {
@@ -400,14 +448,16 @@ class SampServerService : Service() {
             statsJob.cancel()
             stdoutJob.join()
 
+            val nextIndex = profileIndex + 1
             if (!stopRequested.get() &&
                 exitCode != 0 &&
                 sawGuestBaseError.get() &&
-                reservedVa != AppConstants.QEMU_FALLBACK_RESERVED_VA
+                nextIndex < memoryProfiles.size
             ) {
+                val nextProfile = memoryProfiles[nextIndex]
                 appendLog(
-                    "[PocketSamp] Reservasi ruang alamat $reservedVa ditolak kernel, " +
-                        "mencoba mode cadangan (-R ${AppConstants.QEMU_FALLBACK_RESERVED_VA})..."
+                    "[PocketSamp] Mode memori ${memoryProfile.describeArgs()} ditolak kernel, " +
+                        "mencoba ${nextProfile.describeArgs()}..."
                 )
                 lifecycleMutex.withLock {
                     if (!stopRequested.get() && activeProcess == null) {
@@ -423,7 +473,8 @@ class SampServerService : Service() {
                             logFile = logFile,
                             initialLogOffset = initialLogOffset,
                             lowPriority = lowPriority,
-                            reservedVa = AppConstants.QEMU_FALLBACK_RESERVED_VA
+                            memoryProfiles = memoryProfiles,
+                            profileIndex = nextIndex
                         )
                     }
                 }
@@ -440,6 +491,9 @@ class SampServerService : Service() {
                     )
                 )
             } else {
+                if (sawGuestBaseError.get()) {
+                    logGuestSpaceDiagnostic(paths, serverDir, preparedExe)
+                }
                 val msg = "Proses server berhenti tak terduga (kode keluar $exitCode)"
                 appendLog("[PocketSamp] $msg")
                 updateSnapshot(
@@ -455,6 +509,64 @@ class SampServerService : Service() {
         }
 
         monitorJobs = listOf(stdoutJob, logTailJob, statsJob, waitJob)
+    }
+
+    private suspend fun logGuestSpaceDiagnostic(
+        paths: RuntimePaths,
+        serverDir: File,
+        preparedExe: ProcessUtils.PreparedExecutable
+    ) {
+        val abis = Build.SUPPORTED_ABIS.joinToString(",")
+        val pageSize = runCatching { Os.sysconf(OsConstants._SC_PAGESIZE) }.getOrDefault(-1L)
+        appendLog("[PocketSamp] Diagnostik kernel: ABI=[$abis], pageSize=$pageSize")
+
+        val diagCommand = buildList {
+            add(paths.qemuBinary.absolutePath)
+            add("-d")
+            add("page")
+            add("-R")
+            add(AppConstants.QEMU_RESERVE_256M)
+            if (Build.SUPPORTED_64_BIT_ABIS.isNotEmpty()) {
+                add("-B")
+                add(AppConstants.QEMU_GUEST_BASE_4G)
+            }
+            add("-L")
+            add(paths.sysrootDir.absolutePath)
+            add(preparedExe.execFile.absolutePath)
+        }
+
+        withTimeoutOrNull(1500L) {
+            var diagProcess: Process? = null
+            try {
+                diagProcess = ProcessBuilder(diagCommand)
+                    .directory(serverDir)
+                    .redirectErrorStream(true)
+                    .start()
+                BufferedReader(InputStreamReader(diagProcess.inputStream, StandardCharsets.UTF_8)).use { reader ->
+                    var count = 0
+                    while (count < 12) {
+                        val line = reader.readLine() ?: break
+                        if (line.contains("mmap_min_addr", ignoreCase = true) ||
+                            line.contains("Locating guest", ignoreCase = true) ||
+                            line.contains("guest_base", ignoreCase = true) ||
+                            line.contains("requires", ignoreCase = true) ||
+                            line.contains("Unable to find", ignoreCase = true)
+                        ) {
+                            appendLog("[QEMU Diag] $line")
+                            count++
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                appendLog("[QEMU Diag] Gagal menjalankan diagnostik: ${e.message ?: e.javaClass.simpleName}")
+            } finally {
+                runCatching {
+                    if (diagProcess?.isAlive == true) {
+                        diagProcess.destroyForcibly()
+                    }
+                }
+            }
+        }
     }
 
     private suspend fun tailServerLog(logFile: File, startOffset: Long) {

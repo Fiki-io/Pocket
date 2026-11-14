@@ -29,7 +29,13 @@ object AppConstants {
     const val SAMP_CFG_FILE = "server.cfg"
     const val DEFAULT_SAMP_PORT = 7777
     const val QEMU_RESERVED_VA = "768M"
+    const val QEMU_RESERVE_512M = "512M"
+    const val QEMU_RESERVE_256M = "256M"
     const val QEMU_FALLBACK_RESERVED_VA = "0"
+    const val QEMU_GUEST_BASE_4G = "0x100000000"
+    const val QEMU_GUEST_BASE_8G = "0x200000000"
+    const val QEMU_GUEST_BASE_64G = "0x1000000000"
+    const val QEMU_GUEST_BASE_512M = "0x20000000"
 
     const val MARIADB_HOME_DIR = "mariadb"
     const val MARIADB_DATA_DIR = "data"
