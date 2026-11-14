@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">PocketSamp</string>
+
+    <!-- Navigasi Utama -->
+    <string name="nav_server">Server</string>
+    <string name="nav_config">Konfigurasi</string>
+    <string name="nav_database">Database</string>
+
+    <!-- Status Umum & Aksi -->
+    <string name="action_save">Simpan</string>
+    <string name="action_cancel">Batal</string>
+    <string name="action_close">Tutup</string>
+    <string name="action_delete">Hapus</string>
+    <string name="action_edit">Ubah</string>
+    <string name="action_add">Tambah</string>
+    <string name="action_refresh">Muat ulang</string>
+    <string name="action_copy">Salin</string>
+    <string name="action_grant_permission">Beri Izin</string>
+    <string name="action_open_settings">Buka Pengaturan</string>
+    <string name="action_clear">Bersihkan</string>
+    <string name="action_send">Kirim</string>
+    <string name="copied_to_clipboard">%1$s disalin</string>
+
+    <!-- Setup Runtime & Izin -->
+    <string name="runtime_preparing">Menyiapkan runtime QEMU dan MariaDB...</string>
+    <string name="runtime_ready">Runtime siap digunakan</string>
+    <string name="runtime_extract_stage">Mengekstrak %1$s (%2$d berkas)</string>
+    <string name="runtime_error_title">Runtime belum siap</string>
+    <string name="runtime_retry">Coba Siapkan Ulang</string>
+    <string name="permission_storage_title">Izin akses folder gamemode</string>
+    <string name="permission_storage_desc">Aplikasi membutuhkan akses semua berkas agar server dapat membaca dan menulis folder gamemode langsung tanpa menyalin ulang.</string>
+    <string name="permission_storage_denied">Izin penyimpanan ditolak. Aktifkan izin lewat Pengaturan aplikasi agar folder gamemode dapat diakses langsung.</string>
+    <string name="permission_notification_rationale_title">Izin notifikasi latar belakang</string>
+    <string name="permission_notification_rationale_desc">Notifikasi diperlukan agar layanan server tetap aktif di latar belakang saat game dimainkan.</string>
+
+    <!-- Layar Server & Profil -->
+    <string name="profile_active_label">Profil aktif</string>
+    <string name="profile_none">Belum ada profil server</string>
+    <string name="profile_add">Tambah Profil</string>
+    <string name="profile_select_sheet_title">Pilih Profil Server</string>
+    <string name="profile_create_title">Tambah Profil Server</string>
+    <string name="profile_edit_title">Ubah Profil Server</string>
+    <string name="profile_delete_confirm_title">Hapus profil %1$s?</string>
+    <string name="profile_delete_confirm_desc">Hanya profil di aplikasi yang dihapus. Folder gamemode asli di penyimpanan Anda tetap aman dan tidak disentuh.</string>
+    <string name="profile_name_label">Nama profil</string>
+    <string name="profile_name_hint">Contoh: Roleplay Lokal</string>
+    <string name="profile_folder_label">Folder gamemode</string>
+    <string name="profile_folder_empty">Belum memilih folder</string>
+    <string name="profile_pick_folder">Pilih Folder</string>
+    <string name="profile_executable_label">Binary server</string>
+    <string name="profile_folder_stats">%1$d gamemode, %2$d plugin terdeteksi</string>
+    <string name="profile_missing_executable">Binary %1$s tidak ditemukan di folder ini</string>
+    <string name="profile_missing_cfg">Berkas server.cfg tidak ditemukan di folder ini</string>
+    <string name="profile_empty_state">Tambahkan profil dan pilih folder server SA-MP Anda untuk langsung menjalankan server tanpa proses salin.</string>
+
+    <!-- Browser Folder POSIX -->
+    <string name="folder_picker_title">Pilih Folder Server</string>
+    <string name="folder_picker_up">Naik ke induk</string>
+    <string name="folder_picker_use_current">Gunakan Folder Ini</string>
+    <string name="folder_picker_empty">Folder kosong</string>
+    <string name="folder_picker_samp_badge">server.cfg</string>
+
+    <!-- Kontrol & Status Server -->
+    <string name="server_status_stopped">Berhenti</string>
+    <string name="server_status_starting">Memulai</string>
+    <string name="server_status_running">Berjalan</string>
+    <string name="server_status_stopping">Menghentikan</string>
+    <string name="server_status_error">Gagal</string>
+    <string name="server_start">Mulai Server</string>
+    <string name="server_stop">Hentikan Server</string>
+    <string name="server_address_local">Lokal: %1$s</string>
+    <string name="server_address_lan">LAN: %1$s</string>
+    <string name="server_pid_label">PID %1$d</string>
+    <string name="server_ram_label">RAM %1$s</string>
+    <string name="server_uptime_label">Aktif %1$s</string>
+    <string name="server_db_pill_running">MariaDB Aktif</string>
+    <string name="server_db_pill_stopped">MariaDB Mati</string>
+    <string name="server_console_title">Konsol Langsung</string>
+    <string name="server_console_autoscroll">Gulir otomatis</string>
+    <string name="server_console_empty">Log server akan tampil di sini setelah server dijalankan.</string>
+    <string name="server_rcon_hint">Perintah RCON (mis. gmx, players, say halo)</string>
+    <string name="server_rcon_send_cd">Kirim perintah RCON</string>
+    <string name="server_rcon_missing_password">rcon_password belum diatur di server.cfg</string>
+    <string name="server_rcon_sent">Perintah RCON dikirim: %1$s</string>
+    <string name="server_start_missing_profile">Pilih atau buat profil server terlebih dahulu</string>
+
+    <!-- Notifikasi Foreground Service -->
+    <string name="notif_channel_server">Layanan Server SA-MP</string>
+    <string name="notif_channel_server_desc">Menjaga server GTA SA-MP tetap berjalan di latar belakang</string>
+    <string name="notif_server_title">PocketSamp: %1$s</string>
+    <string name="notif_server_text">Port %1$d • %2$s</string>
+    <string name="notif_channel_db">Layanan Database MariaDB</string>
+    <string name="notif_channel_db_desc">Menjaga MariaDB lokal tetap aktif untuk gamemode MySQL</string>
+    <string name="notif_db_title">MariaDB Lokal Aktif</string>
+    <string name="notif_db_text">127.0.0.1:%1$d • %2$s</string>
+
+    <!-- Layar Konfigurasi -->
+    <string name="config_no_profile">Pilih profil server di tab Server untuk mengelola server.cfg dan tuning profil.</string>
+    <string name="config_mode_structured">Terstruktur</string>
+    <string name="config_mode_raw">Teks Mentah</string>
+    <string name="config_section_server">Parameter server.cfg</string>
+    <string name="config_section_tuning">Tuning Performa Profil</string>
+    <string name="config_hostname">Nama server (hostname)</string>
+    <string name="config_port">Port UDP (port)</string>
+    <string name="config_maxplayers">Maksimal pemain (maxplayers)</string>
+    <string name="config_rcon_password">Kata sandi RCON (rcon_password)</string>
+    <string name="config_password">Kata sandi masuk server (password)</string>
+    <string name="config_gamemode0">Gamemode utama (gamemode0)</string>
+    <string name="config_plugins">Daftar plugin (plugins)</string>
+    <string name="config_sleep">Jeda tick ms (sleep)</string>
+    <string name="config_stream_rate">Stream rate ms (stream_rate)</string>
+    <string name="config_lanmode">Mode LAN (lanmode)</string>
+    <string name="config_announce">Terdaftar di master list (announce)</string>
+    <string name="config_raw_label">Isi berkas server.cfg</string>
+    <string name="config_saved">server.cfg berhasil disimpan</string>
+    <string name="config_save_failed">Gagal menyimpan server.cfg: %1$s</string>
+    <string name="config_low_priority_title">Prioritas CPU hemat game</string>
+    <string name="config_low_priority_desc">Menurunkan prioritas proses QEMU agar game GTA SA-MP client tetap lancar saat dimainkan bersamaan.</string>
+    <string name="config_auto_mariadb_title">Otomatis nyalakan MariaDB</string>
+    <string name="config_auto_mariadb_desc">Jalankan MariaDB lokal secara otomatis saat server profil ini dimulai.</string>
+    <string name="config_detected_assets">Gamemode (.amx): %1$s\nPlugin (.so): %2$s</string>
+    <string name="config_none_detected">Tidak ada</string>
+
+    <!-- Layar Database -->
+    <string name="db_title">MariaDB Lokal</string>
+    <string name="db_start">Nyalakan MariaDB</string>
+    <string name="db_stop">Matikan MariaDB</string>
+    <string name="db_status_stopped">Mati</string>
+    <string name="db_status_starting">Memulai</string>
+    <string name="db_status_running">Aktif di 127.0.0.1:%1$d</string>
+    <string name="db_status_error">Gagal</string>
+    <string name="db_buffer_pool_label">Buffer pool InnoDB: %1$d MB</string>
+    <string name="db_credentials_info">Host: 127.0.0.1 • Port: %1$d • User: root • Sandi: kosong</string>
+    <string name="db_list_title">Daftar Database</string>
+    <string name="db_create">Buat Database</string>
+    <string name="db_create_hint">Nama database (huruf, angka, garis bawah)</string>
+    <string name="db_drop_confirm_title">Hapus database %1$s?</string>
+    <string name="db_drop_confirm_desc">Seluruh tabel dan data di dalam database ini akan dihapus permanen.</string>
+    <string name="db_import_sql">Import .sql</string>
+    <string name="db_export_sql">Export .sql</string>
+    <string name="db_normalize_mysql8_title">Normalisasi dump MySQL 8</string>
+    <string name="db_normalize_mysql8_desc">Ubah utf8mb4_0900_ai_ci ke utf8mb4_unicode_ci otomatis saat import agar kompatibel dengan MariaDB.</string>
+    <string name="db_import_running">Mengimpor berkas SQL...</string>
+    <string name="db_import_success">Berkas SQL berhasil diimpor ke %1$s</string>
+    <string name="db_export_success">Backup SQL disimpan ke berkas tujuan</string>
+    <string name="db_empty_databases">Belum ada database pengguna. Buat database baru lalu import berkas .sql Anda.</string>
+    <string name="db_start_required">Nyalakan MariaDB terlebih dahulu untuk mengelola database dan tabel.</string>
+
+    <!-- Browser Tabel, Baris & Konsol SQL -->
+    <string name="db_tab_tables">Tabel</string>
+    <string name="db_tab_sql">Konsol SQL</string>
+    <string name="db_tables_empty">Database ini belum memiliki tabel.</string>
+    <string name="db_rows_title">Isi Tabel: %1$s</string>
+    <string name="db_rows_count">%1$d baris ditampilkan (halaman %2$d)</string>
+    <string name="db_rows_empty">Tabel kosong.</string>
+    <string name="db_row_insert">Tambah Baris</string>
+    <string name="db_row_edit">Ubah Baris</string>
+    <string name="db_row_delete_confirm_title">Hapus baris ini?</string>
+    <string name="db_row_delete_confirm_desc">Baris akan langsung dihapus dari tabel %1$s.</string>
+    <string name="db_page_prev">Sebelumnya</string>
+    <string name="db_page_next">Berikutnya</string>
+    <string name="db_sql_hint">Tulis perintah SQL (contoh: SELECT * FROM players LIMIT 20;)</string>
+    <string name="db_sql_run">Jalankan SQL</string>
+    <string name="db_sql_affected">Query berhasil dieksekusi.</string>
+    <string name="db_back_cd">Kembali</string>
+    <string name="db_null_label">NULL</string>
+    <string name="db_buffer_pool_sheet_title">Ukuran Buffer Pool InnoDB</string>
+    <string name="db_buffer_pool_option">%1$d MB</string>
+    <string name="db_buffer_pool_restart_hint">Mulai ulang MariaDB agar kapasitas buffer baru diterapkan.</string>
+    <string name="db_open_action">Kelola</string>
+    <string name="db_tables_section">Daftar Tabel</string>
+    <string name="db_row_actions_cd">Opsi baris</string>
+    <string name="db_is_null_toggle">Set NULL</string>
+    <string name="folder_picker_system_fallback">Pilih Lewat Pemilih Sistem</string>
+    <string name="folder_picker_invalid_saf">Folder ini berada di penyedia yang tidak menyediakan path lokal langsung.</string>
+    <string name="profile_switch_cd">Ganti atau kelola profil server</string>
+    <string name="profile_selected_cd">Profil aktif</string>
+    <string name="option_selected_cd">Terpilih</string>
+    <string name="server_db_check_running">Cek</string>
+    <string name="server_waiting_mariadb">Menyiapkan MariaDB sebelum menjalankan server...</string>
+</resources>
