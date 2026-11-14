@@ -244,12 +244,40 @@ class SampServerService : Service() {
         val logFile = File(serverDir, AppConstants.SAMP_SERVER_LOG_FILE)
         val initialLogOffset = if (logFile.isFile) logFile.length() else 0L
 
+        launchQemuLocked(
+            profileName = profileName,
+            serverDir = serverDir,
+            targetExe = targetExe,
+            executableName = executableName,
+            exeElf = exeElf,
+            preparedExe = preparedExe,
+            paths = paths,
+            port = port,
+            logFile = logFile,
+            initialLogOffset = initialLogOffset,
+            lowPriority = lowPriority,
+            reservedVa = AppConstants.QEMU_RESERVED_VA
+        )
+    }
+
+    private fun launchQemuLocked(
+        profileName: String,
+        serverDir: File,
+        targetExe: File,
+        executableName: String,
+        exeElf: ProcessUtils.ElfInspection,
+        preparedExe: ProcessUtils.PreparedExecutable,
+        paths: com.pocketsamp.runtime.RuntimePaths,
+        port: Int,
+        logFile: File,
+        initialLogOffset: Long,
+        lowPriority: Boolean,
+        reservedVa: String
+    ) {
         val command = buildList {
             add(paths.qemuBinary.absolutePath)
-            if (ProcessUtils.isHost32BitArm()) {
-                add("-R")
-                add(AppConstants.QEMU_32BIT_RESERVED_VA)
-            }
+            add("-R")
+            add(reservedVa)
             add("-L")
             add(paths.sysrootDir.absolutePath)
             if (preparedExe.wasStaged) {
@@ -273,7 +301,7 @@ class SampServerService : Service() {
             add(preparedExe.execFile.absolutePath)
         }
 
-        appendLog("[PocketSamp] Memulai $executableName (${exeElf.summary}) di port $port...")
+        appendLog("[PocketSamp] Memulai $executableName (${exeElf.summary}, -R $reservedVa) di port $port...")
 
         val process = try {
             val pb = ProcessBuilder(command)
@@ -300,13 +328,14 @@ class SampServerService : Service() {
                 )
             )
             stopSelfCleanly()
-            return@withLock
+            return
         }
 
         activeProcess = process
         startEpochMs = System.currentTimeMillis()
         val pid = ProcessUtils.extractPid(process)
         val initialRss = ProcessUtils.readProcessRssKb(pid)
+        val sawGuestBaseError = AtomicBoolean(false)
 
         updateSnapshot(
             ServerRuntimeSnapshot(
@@ -330,6 +359,9 @@ class SampServerService : Service() {
                 BufferedReader(InputStreamReader(process.inputStream, StandardCharsets.UTF_8)).use { reader ->
                     while (isActive) {
                         val line = reader.readLine() ?: break
+                        if (line.contains("Unable to find a guest_base", ignoreCase = true)) {
+                            sawGuestBaseError.set(true)
+                        }
                         if (line.isNotBlank()) {
                             appendLog(line)
                         }
@@ -367,6 +399,36 @@ class SampServerService : Service() {
             logTailJob.cancel()
             statsJob.cancel()
             stdoutJob.join()
+
+            if (!stopRequested.get() &&
+                exitCode != 0 &&
+                sawGuestBaseError.get() &&
+                reservedVa != AppConstants.QEMU_FALLBACK_RESERVED_VA
+            ) {
+                appendLog(
+                    "[PocketSamp] Reservasi ruang alamat $reservedVa ditolak kernel, " +
+                        "mencoba mode cadangan (-R ${AppConstants.QEMU_FALLBACK_RESERVED_VA})..."
+                )
+                lifecycleMutex.withLock {
+                    if (!stopRequested.get() && activeProcess == null) {
+                        launchQemuLocked(
+                            profileName = profileName,
+                            serverDir = serverDir,
+                            targetExe = targetExe,
+                            executableName = executableName,
+                            exeElf = exeElf,
+                            preparedExe = preparedExe,
+                            paths = paths,
+                            port = port,
+                            logFile = logFile,
+                            initialLogOffset = initialLogOffset,
+                            lowPriority = lowPriority,
+                            reservedVa = AppConstants.QEMU_FALLBACK_RESERVED_VA
+                        )
+                    }
+                }
+                return@launch
+            }
 
             if (stopRequested.get()) {
                 appendLog("[PocketSamp] Server berhenti (kode keluar $exitCode).")

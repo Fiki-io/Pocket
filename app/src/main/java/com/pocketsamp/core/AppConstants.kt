@@ -28,7 +28,8 @@ object AppConstants {
     const val SAMP_SERVER_LOG_FILE = "server_log.txt"
     const val SAMP_CFG_FILE = "server.cfg"
     const val DEFAULT_SAMP_PORT = 7777
-    const val QEMU_32BIT_RESERVED_VA = "768M"
+    const val QEMU_RESERVED_VA = "768M"
+    const val QEMU_FALLBACK_RESERVED_VA = "0"
 
     const val MARIADB_HOME_DIR = "mariadb"
     const val MARIADB_DATA_DIR = "data"

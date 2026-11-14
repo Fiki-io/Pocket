@@ -1,0 +1,117 @@
+name: Build PocketSamp Debug APK
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-apk:
+    name: Build Debug APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Accept Android SDK licenses
+        run: |
+          if [ -n "${ANDROID_HOME:-}" ] && [ -x "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" ]; then
+            yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+          fi
+
+      - name: Cache Android build cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/build-cache
+          key: android-build-cache-${{ runner.os }}-${{ hashFiles('gradle/libs.versions.toml', '**/build.gradle.kts') }}
+          restore-keys: |
+            android-build-cache-${{ runner.os }}-
+
+      - name: Setup Gradle and Cache
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '9.3.1'
+          cache-read-only: false
+
+      - name: Prepare debug keystore
+        run: |
+          if [ -s debug.keystore.base64 ]; then
+            base64 -d debug.keystore.base64 > debug.keystore
+            echo "Menggunakan debug.keystore dari debug.keystore.base64"
+          elif [ ! -f debug.keystore ]; then
+            keytool -genkeypair -v \
+              -keystore debug.keystore \
+              -storepass android \
+              -alias androiddebugkey \
+              -keypass android \
+              -keyalg RSA \
+              -keysize 2048 \
+              -validity 10000 \
+              -dname "CN=Android Debug,O=Android,C=US"
+            echo "Membuat debug.keystore baru"
+          fi
+
+      - name: Run unit tests and assemble Debug APK
+        run: gradle :app:testDebugUnitTest :app:assembleDebug --stacktrace
+
+      - name: Upload Debug APK to Gofile
+        env:
+          GOFILE_TOKEN: ${{ secrets.GOFILE_TOKEN }}
+        run: |
+          APK_PATH="$(find app/build/outputs/apk/debug -maxdepth 1 -name '*.apk' -print -quit)"
+          if [ -z "$APK_PATH" ] || [ ! -f "$APK_PATH" ]; then
+            echo "APK debug tidak ditemukan"
+            exit 1
+          fi
+
+          if [ -n "${GOFILE_TOKEN:-}" ]; then
+            RESP="$(curl -sSfL -X POST https://upload.gofile.io/uploadfile \
+              -H "Authorization: Bearer ${GOFILE_TOKEN}" \
+              -F "file=@${APK_PATH}")"
+          else
+            RESP="$(curl -sSfL -X POST https://upload.gofile.io/uploadfile \
+              -F "file=@${APK_PATH}")"
+          fi
+
+          DOWNLOAD_URL="$(python3 -c '
+          import json, sys
+          data = json.loads(sys.argv[1])
+          if data.get("status") != "ok":
+              raise SystemExit(f"Gofile upload gagal: {data}")
+          url = (data.get("data") or {}).get("downloadPage", "")
+          if not url:
+              raise SystemExit(f"Gofile downloadPage kosong: {data}")
+          print(url)
+          ' "$RESP")"
+
+          echo "Gofile APK URL: $DOWNLOAD_URL"
+          {
+            echo "### Download Debug APK (Gofile)"
+            echo "- File: \`$(basename "$APK_PATH")\`"
+            echo "- Link: $DOWNLOAD_URL"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload Debug APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pocketsamp-debug-apk
+          path: app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+          retention-days: 30

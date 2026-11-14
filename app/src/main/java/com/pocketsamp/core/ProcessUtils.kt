@@ -89,11 +89,6 @@ object ProcessUtils {
         return result.toList()
     }
 
-    fun isHost32BitArm(): Boolean {
-        val primaryAbi = Build.SUPPORTED_ABIS.firstOrNull() ?: return false
-        return primaryAbi.startsWith("armeabi")
-    }
-
     data class ElfInspection(
         val isValidI386Elf: Boolean,
         val summary: String
